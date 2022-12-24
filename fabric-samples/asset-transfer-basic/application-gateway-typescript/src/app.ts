@@ -62,15 +62,11 @@ async function main(): Promise<void> {
     metrics: ['MAE']
     });
 
-
-    // model.setWeights();
-
-
-    // Generate some random fake data for demo purpose.
-    const xs = tf.randomUniform([1000, 1]);
-    const ys = tf.randomUniform([1000, 1]);
-    const valXs = tf.randomUniform([100, 1]);
-    const valYs = tf.randomUniform([100, 1]);
+    // Generate some random fake data for demo purpose seeded by current time
+    const xs = tf.randomUniform([1000, 1], undefined, undefined, undefined, Date.now());
+    const ys = tf.randomUniform([1000, 1], undefined, undefined, undefined, Date.now());
+    const valXs = tf.randomUniform([100, 1], undefined, undefined, undefined, Date.now());
+    const valYs = tf.randomUniform([100, 1], undefined, undefined, undefined, Date.now());
 
 
     // Start model training process.
@@ -187,17 +183,18 @@ async function main(): Promise<void> {
         // get latest base weights and init model
         var curr_base = await getLatestModel(contract, model);
 
-        console.log("\n\nNew weights: ", model.getWeights())
+        console.log("\n\nNew weights: ", model.getWeights().toString(), curr_base)
 
         await train();
 
+        console.log("\n\ntrained weights: ", model.getWeights().toString())
 
         // Return all the current assets on the ledger.
         await getAllAssets(contract);
 
-        let weights_it = model.getWeights().values();
+        let weights = model.getWeights();
         // Create a new asset on the ledger.
-        await createNewAsset(contract, weights_it.next().value.dataSync[0] , weights_it.next().value.dataSync[0], 1000, curr_base);
+        await createNewAsset(contract, weights[0].dataSync()[0] , weights[1].dataSync()[0], 1000, curr_base);
 
         await getAllAssets(contract);
 
@@ -253,7 +250,7 @@ async function initLedger(contract: Contract): Promise<void> {
 async function getAllAssets(contract: Contract): Promise<void> {
     console.log('\n--> Evaluate Transaction: GetAllAssets, function returns all the current assets on the ledger');
 
-    const resultBytes = await contract.evaluateTransaction('GetLatestModel');
+    const resultBytes = await contract.evaluateTransaction('GetAllAssets');
 
     const resultJson = utf8Decoder.decode(resultBytes);
     const result = JSON.parse(resultJson);
@@ -266,13 +263,14 @@ async function getAllAssets(contract: Contract): Promise<void> {
  * Evaluate a transaction to query ledger state.
  */
 async function getLatestModel(contract: Contract, model:any): Promise<string> {
-    console.log('\n--> Evaluate Transaction: GetAllAssets, function returns all the current assets on the ledger');
+    console.log('\n--> Evaluate Transaction: GetLatestModel, function returns latest model weights');
 
-    const resultBytes = await contract.evaluateTransaction('GetAllAssets');
+    const resultBytes = await contract.evaluateTransaction('GetLatestModel');
 
     const resultJson = utf8Decoder.decode(resultBytes);
     const result = JSON.parse(resultJson);
     var new_weights = [variable(tensor([result.M], [1,1]), true, 'dense_Dense5/kernal'), variable(tensor([result.C]), true, 'dense_Dense5/bias')]
+    
     model.setWeights(new_weights);
     
     console.log('*** Result:', result);
@@ -285,7 +283,7 @@ async function getLatestModel(contract: Contract, model:any): Promise<string> {
  * Submit a transaction synchronously, blocking until it has been committed to the ledger.
  */
 async function createNewAsset(contract: Contract, m: number, c: number, n: number, base: string): Promise<void> {
-    console.log('\n--> Submit Transaction: CreateAsset, creates new asset with ID, Color, Size, Owner and AppraisedValue arguments');
+    console.log('\n--> Submit Transaction: CreateNewAsset, creates new asset with m: ' , m , ", c: " , c, ", n: ", n, ", and base: ", base);
 
     await contract.submitTransaction(
         'CreateNewAsset',

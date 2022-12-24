@@ -139,12 +139,14 @@ class AssetTransfer extends Contract {
         if ( assets.length % 5 == 0 ) {
             id = `asset${assets.length}`
 
-            for (var a in assets) {
+            assets.forEach( (a) => {
                 if (a.docType != "Update") {
                     update_assets = [];
                 }
                 update_assets.push(a);
-            }
+            })
+
+            console.log(update_assets)
 
             //---------------------
             // TODO: Add tensorflow averaging logic here
@@ -153,13 +155,13 @@ class AssetTransfer extends Contract {
 
             for (let i = 1; i < update_assets.length; i++) {
                 let up = update_assets[i];
-                totalN += up.N;
+                totalN += parseInt(up.N);
             }            
 
             for (let i = 1; i < update_assets.length; i++) {
                 // skip first element as it is the base model block
                 let up = update_assets[i];
-                let curr_weight = (up.N / totalN);
+                let curr_weight = (parseInt(up.N) / totalN);
                 avgM += (up.M * curr_weight);
                 avgC += (up.C * curr_weight);
             }
@@ -170,7 +172,7 @@ class AssetTransfer extends Contract {
                 docType: "Model",
                 M: avgM,
                 C: avgC,
-                N: totalN + update_assets[0].N,
+                N: totalN + parseInt(update_assets[0].N),
                 Base: id
             }
 
